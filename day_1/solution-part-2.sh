@@ -7,4 +7,3 @@ cat input.txt |\
   xargs |\
   tr ' ' '+' |\
   bc
-
