@@ -59,6 +59,24 @@ impl Session {
     fn is_possible(&self, max_game: &Game) -> bool {
         !self.games.iter().any(|&g| !g.is_possible(max_game))
     }
+
+    fn maximum_possible_game(&self) -> Game {
+        let mut game = Game::build();
+
+        for &g in self.games.iter() {
+            if g.red > game.red {
+                game.red(g.red);
+            }
+            if g.green > game.green {
+                game.green(g.green);
+            }
+            if g.blue > game.blue {
+                game.blue(g.blue);
+            }
+        }
+
+        return game;
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -109,10 +127,20 @@ fn main() {
         .filter(|&s| !s.is_empty())
         .map(|line| line.parse::<Session>().unwrap())
         .collect();
+
+    // Part 1 - Sum of possible games
     let sum = sessions
         .iter()
         .filter(|&s| s.is_possible(&maximum_game))
-        .fold(0, |val, s| val + s.id);
+        .fold(0, |acc, s| acc + s.id);
 
-    println!("{:?}", sum)
+    println!("{:?}", sum);
+
+    // Part 2 - Sum of game powers
+    let sum = sessions
+        .iter()
+        .map(|s| s.maximum_possible_game())
+        .fold(0, |acc, g| acc + (g.red * g.green * g.blue));
+
+    println!("{:?}", sum);
 }
