@@ -10,7 +10,11 @@ struct Game {
 
 impl Game {
     fn build() -> Self {
-        Game { red: 0, green: 0, blue: 0 }
+        Game {
+            red: 0,
+            green: 0,
+            blue: 0,
+        }
     }
 
     fn build_full(red: u32, green: u32, blue: u32) -> Self {
@@ -33,12 +37,9 @@ impl Game {
     }
 
     fn is_possible(&self, max_game: &Self) -> bool {
-        self.red <= max_game.red &&
-            self.green <= max_game.green &&
-            self.blue <= max_game.blue
+        self.red <= max_game.red && self.green <= max_game.green && self.blue <= max_game.blue
     }
 }
-
 
 #[derive(Debug, Clone)]
 struct Session {
@@ -48,7 +49,10 @@ struct Session {
 
 impl Session {
     fn build(id: u32) -> Self {
-        Session { id: id, games: vec![] }
+        Session {
+            id: id,
+            games: vec![],
+        }
     }
 
     fn set_games(&mut self, games: Vec<Game>) -> &Self {
@@ -86,8 +90,13 @@ impl FromStr for Session {
     type Err = ParseSessionError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (session_id_str, rest) = s.strip_prefix("Game ").and_then(|s| s.split_once(":")).unwrap();
-        let session_id = session_id_str.parse::<u32>().map_err(|_| ParseSessionError)?;
+        let (session_id_str, rest) = s
+            .strip_prefix("Game ")
+            .and_then(|s| s.split_once(":"))
+            .unwrap();
+        let session_id = session_id_str
+            .parse::<u32>()
+            .map_err(|_| ParseSessionError)?;
         let mut session = Session::build(session_id);
 
         let games = rest
@@ -116,11 +125,9 @@ impl FromStr for Session {
     }
 }
 
-
 fn main() {
     let maximum_game: Game = Game::build_full(12, 13, 14);
-    let input = fs::read_to_string("input.txt")
-        .expect("failed to open input file");
+    let input = fs::read_to_string("input.txt").expect("failed to open input file");
 
     let sessions: Vec<Session> = input
         .split("\n")
