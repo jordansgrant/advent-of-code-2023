@@ -1,8 +1,9 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs;
 use std::str::FromStr;
 
-#[allow(dead_code)]
+#[derive(Debug, Clone)]
 struct Card {
     number: u32,
     winning_numbers: HashSet<u32>,
@@ -26,12 +27,15 @@ impl Card {
         self.card_numbers.insert(number);
     }
 
-    fn score(&self) -> u32 {
-        let intersection: HashSet<_> = self
-            .winning_numbers
+    fn score_length(&self) -> usize {
+        self.winning_numbers
             .intersection(&self.card_numbers)
-            .collect();
-        let length = intersection.len();
+            .collect::<HashSet<_>>()
+            .len()
+    }
+
+    fn score(&self) -> u32 {
+        let length = self.score_length();
 
         if length == 0 {
             return 0;
@@ -74,6 +78,58 @@ impl FromStr for Card {
     }
 }
 
+struct CardWins {
+    cards: Vec<Card>,
+    won_duplicates: HashMap<u32, u32>,
+}
+
+impl CardWins {
+    fn build(cards: Vec<Card>) -> Self {
+        CardWins {
+            cards,
+            won_duplicates: HashMap::new(),
+        }
+    }
+
+    fn get_won_duplicates(&self, card_id: u32) -> u32 {
+        match self.won_duplicates.get(&card_id) {
+            Some(&num) => num,
+            None => 0,
+        }
+    }
+
+    fn get_won_cards(&mut self, card: &Card) -> u32 {
+        let cards_length = self.cards.len();
+        let count = card.score_length();
+        let curr_card_duplicates = self.get_won_duplicates(card.number);
+
+        let upper_bound = if card.number + count as u32 > cards_length as u32 {
+            (cards_length - 1) as u32
+        } else {
+            card.number + count as u32
+        };
+
+        for card_id in (card.number + 1)..=upper_bound {
+            let duplicates = self.get_won_duplicates(card_id);
+            self.won_duplicates
+                .insert(card_id, duplicates + curr_card_duplicates + 1);
+        }
+
+        return 1 + curr_card_duplicates;
+    }
+
+    fn get_score(&self) -> u32 {
+        self.cards.iter().fold(0, |acc, c| acc + c.score())
+    }
+
+    fn get_total_cards(&mut self) -> u32 {
+        // There must be a better way to handle borrowing here
+        let cards = self.cards.clone();
+
+        cards.iter().fold(0, |acc, c| acc + self.get_won_cards(c))
+    }
+}
+
 fn main() {
     let input = fs::read_to_string("input.txt").expect("failed to open input file");
 
@@ -83,10 +139,11 @@ fn main() {
         .map(|line| line.parse::<Card>().unwrap())
         .collect();
 
-    let total_score = cards
-        .iter()
-        .map(|c| c.score())
-        .fold(0, |acc, score| acc + score);
+    let mut card_wins = CardWins::build(cards);
 
-    println!("{}", total_score)
+    // Part 1
+    println!("{}", card_wins.get_score());
+
+    // Part 2
+    println!("{}", card_wins.get_total_cards());
 }
