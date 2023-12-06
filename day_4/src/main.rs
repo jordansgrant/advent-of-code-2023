@@ -1,5 +1,5 @@
-use std::fs;
 use std::collections::HashSet;
+use std::fs;
 use std::str::FromStr;
 
 #[allow(dead_code)]
@@ -10,34 +10,35 @@ struct Card {
 }
 
 impl Card {
-  fn build(number: u32) -> Card {
-    Card {
-        number,
-        winning_numbers: HashSet::new(),
-        card_numbers: HashSet::new(),
+    fn build(number: u32) -> Card {
+        Card {
+            number,
+            winning_numbers: HashSet::new(),
+            card_numbers: HashSet::new(),
+        }
     }
-  }
 
-  fn add_winning_number(&mut self, number: u32) {
-      self.winning_numbers.insert(number);
-  }
+    fn add_winning_number(&mut self, number: u32) {
+        self.winning_numbers.insert(number);
+    }
 
-  fn add_card_number(&mut self, number: u32) {
-      self.card_numbers.insert(number);
-  }
+    fn add_card_number(&mut self, number: u32) {
+        self.card_numbers.insert(number);
+    }
 
-  fn score(&self) -> u32 {
-      let intersection: HashSet<_> = self.winning_numbers
-          .intersection(&self.card_numbers)
-          .collect();
-      let length = intersection.len();
+    fn score(&self) -> u32 {
+        let intersection: HashSet<_> = self
+            .winning_numbers
+            .intersection(&self.card_numbers)
+            .collect();
+        let length = intersection.len();
 
-      if length == 0 {
-          return 0;
-      }
+        if length == 0 {
+            return 0;
+        }
 
-      u32::pow(2, (length - 1) as u32)
-  }
+        u32::pow(2, (length - 1) as u32)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -60,16 +61,12 @@ impl FromStr for Card {
         let (winning_numbers_str, card_numbers_str) = rest.split_once("|").unwrap();
 
         for s in winning_numbers_str.split(" ").filter(|&s| !s.is_empty()) {
-            let num = s
-                .parse::<u32>()
-                .unwrap();
+            let num = s.parse::<u32>().unwrap();
             card.add_winning_number(num);
         }
 
         for s in card_numbers_str.split(" ").filter(|&s| !s.is_empty()) {
-            let num = s
-                .parse::<u32>()
-                .unwrap();
+            let num = s.parse::<u32>().unwrap();
             card.add_card_number(num);
         }
 
@@ -86,7 +83,10 @@ fn main() {
         .map(|line| line.parse::<Card>().unwrap())
         .collect();
 
-    let total_score = cards.iter().map(|c| c.score()).fold(0, |acc, score| acc + score);
+    let total_score = cards
+        .iter()
+        .map(|c| c.score())
+        .fold(0, |acc, score| acc + score);
 
     println!("{}", total_score)
 }
