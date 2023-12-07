@@ -107,9 +107,10 @@ fn main() -> Result<(), &'static str> {
         maps.push(map);
     }
 
+    // Part 1
     let mut min = u64::MAX;
-    for seed in seeds {
-        let mut mapping = seed;
+    for seed in seeds.iter() {
+        let mut mapping = *seed;
         for map in &maps {
             mapping = map.map_value(mapping);
         }
@@ -119,6 +120,12 @@ fn main() -> Result<(), &'static str> {
         }
     }
     println!("{}", min);
+
+    // Part 2
+    let seed_ranges = seeds.chunks(2).map(|chunk| (chunk[0], chunk[1])).collect::<Vec<(u64, u64)>>();
+
+    for seed in seed_ranges.iter() {
+    }
 
     return Ok(());
 }
