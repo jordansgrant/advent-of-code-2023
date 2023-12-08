@@ -1,12 +1,58 @@
 use std::fs;
+use std::ops::Range;
 use std::str::FromStr;
+use rayon::prelude::*;
+
+
+struct RangeMapping {
+    mapped_range: Option<Range<u64>>,
+    // Portions of the source range don't fit this mapping
+    unmapped_sections: Vec<Range<u64>>,
+}
+
+impl RangeMapping {
+    fn build(mapped_range: Option<Range<u64>>, unmapped_sections: Vec<Range<u64>>) -> Self {
+        Self {
+            mapped_range,
+            unmapped_sections,
+        }
+    }
+}
 
 #[derive(Debug)]
-struct MapItem(u64, u64, u64);
+struct MapItem(Range<u64>, Range<u64>);
 
 impl MapItem {
     fn build(source: u64, dest: u64, count: u64) -> MapItem {
-        MapItem(source, dest, count)
+        MapItem(source..(source + count), dest..(dest + count))
+    }
+
+    fn map_value(&self, value: u64) -> bool {
+        self.0.contains(&value)
+    }
+
+    fn map_range(&self, range: &Range<u64>) -> RangeMapping {
+        let MapItem(source, dest) = self;
+
+        if range.start >= source.start && range.end <= source.end {
+            let mapped_range = (dest.start + (range.start - source.start))..(dest.end - (source.end - range.end));
+            return RangeMapping::build(Some(mapped_range), vec![]);
+        } else if range.start < source.start && range.end <= source.end && range.end > source.start {
+            let mapped_range = dest.start..(dest.end - (source.end - range.end));
+            let unmapped_section = range.start..source.start;
+            return RangeMapping::build(Some(mapped_range), vec![unmapped_section]);
+        } else if range.start >= source.start && range.end > source.end && range.start < source.end {
+            let mapped_range = (dest.start + (range.start - source.start))..dest.end;
+            let unmapped_section = source.end..range.end;
+            return RangeMapping::build(Some(mapped_range), vec![unmapped_section]);
+        } else if range.start < source.start && range.end > source.end {
+            let mapped_range = dest.start..dest.end;
+            let unmapped_left = range.start..source.start;
+            let unmapped_right = source.end..range.end;
+            return RangeMapping::build(Some(mapped_range), vec![unmapped_left, unmapped_right]);
+        }
+
+        return RangeMapping::build(None, vec![range.clone()]);
     }
 }
 
@@ -36,11 +82,36 @@ impl AgMap {
         match self
             .map
             .iter()
-            .find(|MapItem(start, _, count)| value >= *start && value < (start + count))
+            .find(|map_item| map_item.map_value(value))
         {
-            Some(MapItem(source, dest, _)) => dest + (value - source),
+            Some(MapItem(source, dest)) => dest.start + (value - source.start),
             None => value,
         }
+    }
+
+    fn map_range(&self, range: &Range<u64>) -> Vec<Range<u64>> {
+        let mut mapped_ranges: Vec<Range<u64>> = vec![];
+        let mut unmapped_ranges: Vec<Range<u64>> = vec![range.clone()];
+
+        for j in 0..self.map.len() {
+            for i in 0..unmapped_ranges.len() {
+                let mapping: RangeMapping = self.map[j].map_range(&unmapped_ranges[i]);
+                if let Some(mapped) = mapping.mapped_range {
+                    unmapped_ranges.remove(i);
+                    mapped_ranges.push(mapped);
+                    if !mapping.unmapped_sections.is_empty() {
+                        unmapped_ranges.extend(mapping.unmapped_sections.into_iter());
+                    }
+                    break;
+                }
+            }
+        }
+
+        if mapped_ranges.is_empty() {
+            return vec![range.clone()];
+        }
+        mapped_ranges.extend(unmapped_ranges);
+        return mapped_ranges;
     }
 }
 
@@ -107,9 +178,10 @@ fn main() -> Result<(), &'static str> {
         maps.push(map);
     }
 
+    // Part 1
     let mut min = u64::MAX;
-    for seed in seeds {
-        let mut mapping = seed;
+    for seed in seeds.iter() {
+        let mut mapping = *seed;
         for map in &maps {
             mapping = map.map_value(mapping);
         }
@@ -120,5 +192,39 @@ fn main() -> Result<(), &'static str> {
     }
     println!("{}", min);
 
+    // Part 2
+    let seed_ranges: Vec<Range<u64>> = seeds.chunks(2).map(|chunk| chunk[0]..(chunk[0] + chunk[1])).collect::<Vec<Range<u64>>>();
+
+    let map = seed_ranges.par_iter().map(|range| {
+        let mut ranges_to_map: Vec<Range<u64>> = vec![range.clone()];
+
+        for map in maps.iter() {
+            let mut mapped_ranges: Vec<Range<u64>> = vec![];
+            for range in ranges_to_map.iter() {
+                mapped_ranges.extend(map.map_range(&range));
+            }
+            ranges_to_map = mapped_ranges; 
+        }
+
+        return ranges_to_map;
+    });
+
+    let min = map.reduce(|| Vec::<Range<u64>>::new(), |a: Vec<Range<u64>>, b: Vec<Range<u64>>| {
+        let max = u64::MAX..u64::MAX;
+        let min_a = match a.iter().min_by(|&a, &b| a.start.cmp(&b.start)) {
+            Some(v) => v,
+            None => &max,
+        };
+        let min_b = match b.iter().min_by(|&a, &b| a.start.cmp(&b.start)) {
+            Some(v) => v,
+            None => &max,
+        };
+        if min_a.start < min_b.start {
+            return vec![min_a.clone()];
+        }
+        return vec![min_b.clone()];
+    });
+
+    println!("{:?}", min[0].start);
     return Ok(());
 }
