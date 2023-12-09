@@ -1,8 +1,7 @@
+use rayon::prelude::*;
 use std::fs;
 use std::ops::Range;
 use std::str::FromStr;
-use rayon::prelude::*;
-
 
 struct RangeMapping {
     mapped_range: Option<Range<u64>>,
@@ -35,13 +34,16 @@ impl MapItem {
         let MapItem(source, dest) = self;
 
         if range.start >= source.start && range.end <= source.end {
-            let mapped_range = (dest.start + (range.start - source.start))..(dest.end - (source.end - range.end));
+            let mapped_range =
+                (dest.start + (range.start - source.start))..(dest.end - (source.end - range.end));
             return RangeMapping::build(Some(mapped_range), vec![]);
-        } else if range.start < source.start && range.end <= source.end && range.end > source.start {
+        } else if range.start < source.start && range.end <= source.end && range.end > source.start
+        {
             let mapped_range = dest.start..(dest.end - (source.end - range.end));
             let unmapped_section = range.start..source.start;
             return RangeMapping::build(Some(mapped_range), vec![unmapped_section]);
-        } else if range.start >= source.start && range.end > source.end && range.start < source.end {
+        } else if range.start >= source.start && range.end > source.end && range.start < source.end
+        {
             let mapped_range = (dest.start + (range.start - source.start))..dest.end;
             let unmapped_section = source.end..range.end;
             return RangeMapping::build(Some(mapped_range), vec![unmapped_section]);
@@ -79,11 +81,7 @@ impl AgMap {
     }
 
     fn map_value(&self, value: u64) -> u64 {
-        match self
-            .map
-            .iter()
-            .find(|map_item| map_item.map_value(value))
-        {
+        match self.map.iter().find(|map_item| map_item.map_value(value)) {
             Some(MapItem(source, dest)) => dest.start + (value - source.start),
             None => value,
         }
@@ -119,8 +117,12 @@ impl FromStr for AgMap {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, &'static str> {
-        let Some((source_to_destination_str, rest)) = s.split_once(":") else { return Err("Failed to parse map source and destination: split :" ); };
-        let Some((source_to_destination_str, _)) = source_to_destination_str.split_once(" ") else { return Err("Failed to parse map source and destination: split ' '"); };
+        let Some((source_to_destination_str, rest)) = s.split_once(":") else {
+            return Err("Failed to parse map source and destination: split :");
+        };
+        let Some((source_to_destination_str, _)) = source_to_destination_str.split_once(" ") else {
+            return Err("Failed to parse map source and destination: split ' '");
+        };
         let strs: Vec<&str> = source_to_destination_str
             .split('-')
             .filter(|&s| s != "to")
@@ -159,10 +161,12 @@ impl FromStr for AgMap {
 fn main() -> Result<(), &'static str> {
     let input = fs::read_to_string("input.txt").expect("failed to open input file");
 
-    let Some((default_seed_str, rest)) = input.split_once("\n\n")
-        else { return Err("Failed to parse seed list: split \\n\\n") };
-    let Some((_, default_seed_str)) = default_seed_str.split_once(":")
-        else { return Err("Failed to parse seed list: split :") };
+    let Some((default_seed_str, rest)) = input.split_once("\n\n") else {
+        return Err("Failed to parse seed list: split \\n\\n");
+    };
+    let Some((_, default_seed_str)) = default_seed_str.split_once(":") else {
+        return Err("Failed to parse seed list: split :");
+    };
     let seeds = default_seed_str
         .split(" ")
         .filter(|&s| !s.is_empty())
@@ -193,7 +197,10 @@ fn main() -> Result<(), &'static str> {
     println!("{}", min);
 
     // Part 2
-    let seed_ranges: Vec<Range<u64>> = seeds.chunks(2).map(|chunk| chunk[0]..(chunk[0] + chunk[1])).collect::<Vec<Range<u64>>>();
+    let seed_ranges: Vec<Range<u64>> = seeds
+        .chunks(2)
+        .map(|chunk| chunk[0]..(chunk[0] + chunk[1]))
+        .collect::<Vec<Range<u64>>>();
 
     let map = seed_ranges.par_iter().map(|range| {
         let mut ranges_to_map: Vec<Range<u64>> = vec![range.clone()];
@@ -203,27 +210,30 @@ fn main() -> Result<(), &'static str> {
             for range in ranges_to_map.iter() {
                 mapped_ranges.extend(map.map_range(&range));
             }
-            ranges_to_map = mapped_ranges; 
+            ranges_to_map = mapped_ranges;
         }
 
         return ranges_to_map;
     });
 
-    let min = map.reduce(|| Vec::<Range<u64>>::new(), |a: Vec<Range<u64>>, b: Vec<Range<u64>>| {
-        let max = u64::MAX..u64::MAX;
-        let min_a = match a.iter().min_by(|&a, &b| a.start.cmp(&b.start)) {
-            Some(v) => v,
-            None => &max,
-        };
-        let min_b = match b.iter().min_by(|&a, &b| a.start.cmp(&b.start)) {
-            Some(v) => v,
-            None => &max,
-        };
-        if min_a.start < min_b.start {
-            return vec![min_a.clone()];
-        }
-        return vec![min_b.clone()];
-    });
+    let min = map.reduce(
+        || Vec::<Range<u64>>::new(),
+        |a: Vec<Range<u64>>, b: Vec<Range<u64>>| {
+            let max = u64::MAX..u64::MAX;
+            let min_a = match a.iter().min_by(|&a, &b| a.start.cmp(&b.start)) {
+                Some(v) => v,
+                None => &max,
+            };
+            let min_b = match b.iter().min_by(|&a, &b| a.start.cmp(&b.start)) {
+                Some(v) => v,
+                None => &max,
+            };
+            if min_a.start < min_b.start {
+                return vec![min_a.clone()];
+            }
+            return vec![min_b.clone()];
+        },
+    );
 
     println!("{:?}", min[0].start);
     return Ok(());
