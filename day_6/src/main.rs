@@ -4,11 +4,11 @@ use std::ops::Range;
 #[derive(Debug)]
 struct Race {
     time: u32,
-    record_distance: u32,
+    record_distance: u128,
 }
 
 impl Race {
-    fn build(time: u32, record_distance: u32) -> Self {
+    fn build(time: u32, record_distance: u128) -> Self {
         Self {
             time,
             record_distance,
@@ -17,7 +17,7 @@ impl Race {
 }
 
 fn has_won_race(race: &Race, time: u32) -> bool {
-    time * (race.time - time) > race.record_distance
+    u128::from(time) * u128::from(race.time - time) > race.record_distance
 }
 
 fn add_unsigned_negative(val: u32, direction: i32) -> u32 {
@@ -106,11 +106,12 @@ fn main() {
     let mut races: Vec<Race> = vec![];
     for (i, str) in line1_vals.iter().enumerate() {
         let time = str.trim().parse::<u32>().unwrap();
-        let distance = line2_vals[i].trim().parse::<u32>().unwrap();
+        let distance = line2_vals[i].trim().parse::<u128>().unwrap();
 
         races.push(Race::build(time, distance));
     }
 
+    // Part 1
     let mut winning_ranges: Vec<Range<u32>> = vec![];
     for race in races.iter() {
         let Some(winning_range) = find_winning_range(race) else {
@@ -123,4 +124,17 @@ fn main() {
         .iter()
         .fold(1, |acc, range| acc * range_difference(range));
     println!("{}", product);
+
+    // Part 2
+    let (long_time, long_record) = races.iter().fold(("".to_owned(), "".to_owned()), |acc, r| {
+        (
+            format!("{}{}", acc.0, r.time),
+            format!("{}{}", acc.1, r.record_distance),
+        )
+    });
+    let time = long_time.trim().parse::<u32>().unwrap();
+    let record_distance = long_record.trim().parse::<u128>().unwrap();
+    let race = Race::build(time, record_distance);
+    let winning_range = find_winning_range(&race).unwrap();
+    println!("{}", range_difference(&winning_range));
 }
