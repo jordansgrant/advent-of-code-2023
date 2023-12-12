@@ -1,12 +1,18 @@
 use std::collections::HashMap;
 use std::fs;
+use num::Integer;
 
-fn follow_directions(directions: &str, map: HashMap<&str, (&str, &str)>) -> u32 {
+fn follow_directions(
+    directions: &str,
+    map: &HashMap<&str, (&str, &str)>,
+    start_location: &str,
+    is_end_location: fn(&str) -> bool,
+) -> u32 {
     let mut count = 0;
-    let mut location = "AAA";
+    let mut location = start_location;
     let mut dir_iter = directions.chars();
 
-    while location != "ZZZ" {
+    while !is_end_location(location) {
         let next = match dir_iter.next() {
             Some(dir) => dir,
             None => {
@@ -28,6 +34,16 @@ fn follow_directions(directions: &str, map: HashMap<&str, (&str, &str)>) -> u32 
     }
 
     count
+}
+
+fn last_char(s: &str) -> char {
+    s.chars().last().unwrap()
+}
+
+fn lcm_directions(directions: &str, map: &HashMap<&str, (&str, &str)>) -> u64 {
+    let locations: Vec<&str> = map.keys().filter(|k| last_char(k) == 'A').map(|k| *k).collect();
+    let end_distances: Vec<u32> = locations.iter().map(|l| follow_directions(directions, map, l, |v| last_char(v) == 'Z')).collect();
+    end_distances.into_iter().fold(1, |acc, dist| acc.lcm(&(dist as u64)))
 }
 
 fn main() {
@@ -52,5 +68,9 @@ fn main() {
     map.shrink_to_fit();
     let map = map;
 
-    println!("{}", follow_directions(directions, map));
+    // Part 1
+    println!("{}", follow_directions(directions, &map, "AAA", |l| l == "ZZZ"));
+
+    // Part 2
+    println!("{}", lcm_directions(directions, &map));
 }
