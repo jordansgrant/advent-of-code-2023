@@ -4,7 +4,8 @@ use std::fs;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum Card {
-    Two = 2,
+    J = 1,
+    Two,
     Three,
     Four,
     Five,
@@ -13,7 +14,6 @@ enum Card {
     Eight,
     Nine,
     T,
-    J,
     Q,
     K,
     A,
