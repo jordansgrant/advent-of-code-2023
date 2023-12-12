@@ -1,6 +1,6 @@
-use std::fs;
-use std::collections::HashMap;
 use std::cmp::Ordering;
+use std::collections::HashMap;
+use std::fs;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
 enum Card {
@@ -73,7 +73,7 @@ impl HandType {
     fn build_part_2(hand: &Hand) -> Self {
         let joker_count: usize = match hand.hand_counts.get(&Card::J) {
             Some(count) => *count,
-            None => 0
+            None => 0,
         };
 
         if joker_count == 0 || hand.hand_type == Self::FiveOfAKind {
@@ -100,7 +100,6 @@ impl HandType {
     }
 }
 
-
 #[derive(Debug, Eq)]
 struct Hand {
     hand: Vec<Card>,
@@ -111,13 +110,17 @@ struct Hand {
 
 impl Hand {
     fn build(hand_str: &str, score: u32) -> Self {
-        let hand_counts = hand_str.chars().map(|c| Card::from_char(&c)).fold(HashMap::new(), |mut acc, card| {
-            match acc.get(&card) {
-                Some(v) => acc.insert(card, v + 1),
-                None => acc.insert(card, 1),
-            };
-            acc
-        });
+        let hand_counts =
+            hand_str
+                .chars()
+                .map(|c| Card::from_char(&c))
+                .fold(HashMap::new(), |mut acc, card| {
+                    match acc.get(&card) {
+                        Some(v) => acc.insert(card, v + 1),
+                        None => acc.insert(card, 1),
+                    };
+                    acc
+                });
 
         Hand {
             hand: hand_str.chars().map(|c| Card::from_char(&c)).collect(),
@@ -156,17 +159,24 @@ impl PartialEq for Hand {
 
 fn main() {
     let input = fs::read_to_string("input.txt").expect("failed to open input file");
-    let mut hands: Vec<Hand> = input.split('\n').filter(|l| !l.is_empty()).map(|l| {
-        let (hand_str, score_str) = l.split_once(" ").unwrap();
-        let score = score_str.parse::<u32>().unwrap();
+    let mut hands: Vec<Hand> = input
+        .split('\n')
+        .filter(|l| !l.is_empty())
+        .map(|l| {
+            let (hand_str, score_str) = l.split_once(" ").unwrap();
+            let score = score_str.parse::<u32>().unwrap();
 
-        Hand::build(hand_str, score)
-    }).collect();
+            Hand::build(hand_str, score)
+        })
+        .collect();
 
     // Part 1
     hands.sort_unstable();
 
-    let full_score = hands.iter().enumerate().fold(0, |acc, (i, hand)| acc + hand.score * (i + 1) as u32);
+    let full_score = hands
+        .iter()
+        .enumerate()
+        .fold(0, |acc, (i, hand)| acc + hand.score * (i + 1) as u32);
     println!("{}", full_score);
 
     // Part 2
@@ -176,6 +186,9 @@ fn main() {
 
     hands.sort_unstable();
 
-    let full_score = hands.iter().enumerate().fold(0, |acc, (i, hand)| acc + hand.score * (i + 1) as u32);
+    let full_score = hands
+        .iter()
+        .enumerate()
+        .fold(0, |acc, (i, hand)| acc + hand.score * (i + 1) as u32);
     println!("{}", full_score);
 }
