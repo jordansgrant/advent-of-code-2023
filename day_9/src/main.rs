@@ -16,9 +16,24 @@ fn find_next_val(seq: &Vec<i32>, acc: i32) -> i32 {
     return find_next_val(&diffs, seq.iter().last().unwrap() + acc);
 }
 
+fn find_prev_val(seq: &Vec<i32>) -> i32 {
+    if seq.iter().all(|&v| v == 0) {
+        return 0;
+    }
+
+    let diffs: Vec<i32> = seq.iter().tuple_windows().map(|(l, r)| r - l).collect();
+    return seq.iter().nth(0).unwrap() - find_prev_val(&diffs);
+}
+
 fn part_1(seq: &Vec<Vec<i32>>) -> i32 {
     seq.iter()
         .map(|s| find_next_val(s, 0))
+        .fold(0, |acc, v| acc + v)
+}
+
+fn part_2(seq: &Vec<Vec<i32>>) -> i32 {
+    seq.iter()
+        .map(|s| find_prev_val(s))
         .fold(0, |acc, v| acc + v)
 }
 
@@ -27,4 +42,5 @@ fn main() {
     let sequences: Vec<Vec<i32>> = input.lines().map(|line| parse_sequence(line)).collect();
 
     println!("{}", part_1(&sequences));
+    println!("{}", part_2(&sequences));
 }
